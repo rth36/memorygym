@@ -2,7 +2,7 @@
 
 A browser game for practising the memory systems in Harry Lorayne's *How to Develop a Super-Power Memory*, one tip and one level at a time.
 
-**Play:** https://rth36.github.io/memory-gym/
+**Play:** https://rth36.github.io
 
 ## What's inside
 
