@@ -2,7 +2,7 @@
 
 A browser game for practising the memory systems in Harry Lorayne's *How to Develop a Super-Power Memory*, one tip and one level at a time.
 
-**Play:** https://rth36.github.io/memorygym
+**Play:** https://rth36.github.io/memorygym (or https://rth36.github.io/memory-gym/)
 
 ## What's inside
 
@@ -26,4 +26,4 @@ A browser game for practising the memory systems in Harry Lorayne's *How to Deve
 
 Score 80% to pass a level, 90% for two stars, 100% for three. Progress is saved in your browser's local storage.
 
-It's a single self-contained `memorygym/index.html` with no build step. Open it in a browser to play.
+It's a single self-contained `index.html` with no build step. Open it in a browser to play.
