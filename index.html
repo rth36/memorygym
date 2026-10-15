@@ -110,6 +110,13 @@ input[type=text],select{font:inherit;padding:9px 12px;border:1.5px solid var(--l
 .fb{font-weight:700;padding:8px 12px;border-radius:8px}
 .fb.good{background:var(--good-bg);color:var(--good)}
 .fb.bad{background:var(--bad-bg);color:var(--bad)}
+.key{display:grid;gap:6px;margin-top:8px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;max-width:66ch}
+.key .eyebrow{margin-right:6px}
+.answers{width:100%;max-width:66ch;border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.answers h3{font-size:16px;margin-bottom:8px}
+.answers ol,.answers ul{margin:0;padding-left:22px;display:grid;gap:4px}
+.answers li.b{color:var(--bad)}
+.answers .why{color:var(--muted);font-size:14px}
 .recall{display:grid;gap:8px;width:100%;max-width:560px}
 .recall .r{display:grid;grid-template-columns:96px minmax(0,1fr) auto;gap:10px;align-items:center}
 .recall .r .k{font-family:var(--mono);font-size:14px;color:var(--muted);text-align:right}
@@ -239,6 +246,14 @@ const digits=s=>String(s).replace(/\D/g,"");
 const pegAns=n=>[PEGS[n],...(PEG_ALT[n]||[])];
 function pegFor(pair){if(pair.length===1)return PEGS[+pair];if(pair[0]==="0")return ZERO_PEGS[pair];return PEGS[+pair]}
 function pegChunks(num){const d=digits(num),out=[];for(let i=0;i<d.length;i+=2)out.push(d.slice(i,i+2));return out}
+const SOUND_LET=["S/Z","T/D","N","M","R","L","J/SH/CH","K/G","F/V","P/B"];
+const breakdown=code=>String(code).split("").map(d=>`${SOUND_LET[d]} = ${d}`).join(", ");
+const PHON_NOTES={climb:"The B is silent, so it doesn’t count.",cigarette:"The first C sounds like S (0). The double T counts once.",mirror:"The double R counts once, then the final R.",window:"W is ignored.",honey:"H and Y are ignored.",sugar:"The S here sounds like SH (6).",hypnotize:"H and Y are ignored.",kitchen:"TCH makes one CH sound (6).",bottle:"The double T counts once.",butler:"",paper:"The first P and the second P are separate sounds.",puppet:"The first P and the double PP are two P sounds. The double PP counts once.",coffee:"The double F counts once.",dinner:"The double N counts once.",muffin:"The double F counts once.",hammer:"H is ignored. The double M counts once.",ladder:"The double D counts once.",rabbit:"The double B counts once.",saddle:"The double D counts once.",giraffe:"G here is soft, like J (6). The double F counts once.",orange:"The G is soft, like J (6).",candle:"The C is hard, like K (7).",camera:"The C is hard, like K (7).",doctor:"The C is hard, like K (7).",feather:"TH counts as T (1).",pencil:"The C sounds like S (0).",bracelet:"The C sounds like S (0).",jacket:"CK makes one K sound (7).",rocket:"CK makes one K sound (7).",nickel:"CK makes one K sound (7).",yacht:"",chandelier:"CH here sounds like SH (6).",napkin:"",lobster:"",dentist:""};
+function cardWhy(c){const r=c.slice(0,-1),s=c.slice(-1),suit={C:"Clubs",H:"Hearts",S:"Spades",D:"Diamonds"}[s],w=CARD_WORDS[c];
+  if(r==="J")return `Jacks use the suit’s own name: ${w}.`;
+  if(c==="KC"||c==="QH")return `Exception: the ${cardName(c)} is simply “${w}”.`;
+  if(r==="Q"||r==="K")return `Court-card exception: starts with ${s} for ${suit} and rhymes with ${r==="Q"?"Queen":"King"}: ${w}.`;
+  const v=r==="A"?1:+r;return `Starts with ${s} for ${suit}, ends with the ${SOUND_LET[v%10]} sound for ${v}: ${w}.`}
 const isRed=c=>/[HD]$/.test(c);
 const cardLabel=c=>c.slice(0,-1)+SUITS[c.slice(-1)];
 const cardHTML=(c,lg)=>`<span class="pc ${isRed(c)?"red":""} ${lg?"lg":""}" aria-label="${esc(cardName(c))}">${c.slice(0,-1)}<small>${SUITS[c.slice(-1)]}</small></span>`;
@@ -424,13 +439,13 @@ function study(el,cards,onDone,opts={}){
 /* ---------- flash quiz ---------- */
 const GENS={
   phonSounds(){const qs=[];for(const d of shuffle(range(0,9)))qs.push({q:`Which sound is digit <span class="mono">${d}</span>?`,choices:SOUNDS,a:SOUNDS[d],explain:SOUND_AID[d]});for(const d of sample(range(0,9),6))qs.push({q:`The sound <b>${SOUNDS[d].split(",")[0]}</b> stands for…`,choices:range(0,9).map(String),a:String(d),explain:SOUND_AID[d]});return shuffle(qs)},
-  phonWords(){return sample(Object.keys(PHON_WORDS),12).map(w=>({q:`Turn <b>${w}</b> into digits`,num:true,a:[PHON_WORDS[w]],explain:`${w} → ${PHON_WORDS[w]}`}))},
-  phonPick(){const ws=Object.keys(PHON_WORDS);return sample(ws,10).map(w=>{const opts=shuffle([w,...sample(ws.filter(x=>x!==w&&PHON_WORDS[x]!==PHON_WORDS[w]),3)]);return{q:`Which word spells <span class="mono">${PHON_WORDS[w]}</span>?`,choices:opts,a:w,explain:opts.map(o=>`${o} = ${PHON_WORDS[o]}`).join(" · ")}})},
+  phonWords(){return sample(Object.keys(PHON_WORDS),12).map(w=>({q:`Turn <b>${w}</b> into digits`,num:true,a:[PHON_WORDS[w]],explain:`Consonant sounds in “${w}”: ${breakdown(PHON_WORDS[w])}. ${PHON_NOTES[w]||"Vowels, W, H and Y don’t count."}`}))},
+  phonPick(){const ws=Object.keys(PHON_WORDS);return sample(ws,10).map(w=>{const opts=shuffle([w,...sample(ws.filter(x=>x!==w&&PHON_WORDS[x]!==PHON_WORDS[w]),3)]);return{q:`Which word spells <span class="mono">${PHON_WORDS[w]}</span>?`,choices:opts,a:w,explain:`“${w}”: ${breakdown(PHON_WORDS[w])}. ${PHON_NOTES[w]||""} The others: ${opts.filter(o=>o!==w).map(o=>`${o} = ${PHON_WORDS[o]}`).join(", ")}.`}})},
   phonMix(){return shuffle([...GENS.phonSounds().slice(0,8),...GENS.phonWords().slice(0,6),...GENS.phonPick().slice(0,6)])},
-  pegs(c){return sample(range(c.lo,c.hi),Math.min(c.n,c.hi-c.lo+1)).map((n,i)=>i%3===2?{q:`Which number is the peg <b>${esc(PEGS[n])}</b>?`,num:true,a:[String(n)],explain:`${PEGS[n]} = ${n}`}:{q:`Peg word for <span class="mono">${n}</span>?`,a:pegAns(n),explain:`${n} = ${PEGS[n]}`})},
-  alpha(){return sample(Object.keys(ALPHA),16).map((L,i)=>i%3===2?{q:`Which letter is <b>${esc(ALPHA[L])}</b>?`,a:[L],explain:`${L} = ${ALPHA[L]}`}:{q:`Alphabet peg for <span class="mono">${L}</span>?`,a:[ALPHA[L],ALPHA[L].split(" ")[0]],explain:`${L} = ${ALPHA[L]}`})},
-  cards(){return sample(DECK,16).map((c,i)=>{if(i%3===2){const opts=shuffle([c,...sample(DECK.filter(x=>x!==c),3)]);return{q:`Which card is <b>${CARD_WORDS[c]}</b>?`,cardChoices:opts,a:c,explain:`${CARD_WORDS[c]} = ${cardName(c)}`}}return{q:`Card word for ${cardHTML(c,true)}`,a:[CARD_WORDS[c]],explain:`${cardName(c)} = ${CARD_WORDS[c]}`}})},
-  monthKeys(){return shuffle([...range(0,11),...sample(range(0,11),4)]).map(m=>({q:`Month key for <b>${MONTHS[m]}</b>?`,choices:range(0,6).map(String),a:String(MONTH_KEYS[m]),explain:MONTH_AIDS[m]}))},
+  pegs(c){const why=n=>`${n} is ${breakdown(n)}. The peg word uses only ${String(n).length>1?"those sounds":"that sound"}: ${PEGS[n]}.`;return sample(range(c.lo,c.hi),Math.min(c.n,c.hi-c.lo+1)).map((n,i)=>i%3===2?{q:`Which number is the peg <b>${esc(PEGS[n])}</b>?`,num:true,a:[String(n)],explain:why(n)}:{q:`Peg word for <span class="mono">${n}</span>?`,a:pegAns(n),explain:why(n)})},
+  alpha(){return sample(Object.keys(ALPHA),16).map((L,i)=>i%3===2?{q:`Which letter is <b>${esc(ALPHA[L])}</b>?`,a:[L],explain:`“${ALPHA[L]}” sounds like the letter ${L}.`}:{q:`Alphabet peg for <span class="mono">${L}</span>?`,a:[ALPHA[L],ALPHA[L].split(" ")[0]],explain:`“${ALPHA[L]}” sounds like the letter ${L}.`})},
+  cards(){return sample(DECK,16).map((c,i)=>{if(i%3===2){const opts=shuffle([c,...sample(DECK.filter(x=>x!==c),3)]);return{q:`Which card is <b>${CARD_WORDS[c]}</b>?`,cardChoices:opts,a:c,explain:cardWhy(c)}}return{q:`Card word for ${cardHTML(c,true)}`,a:[CARD_WORDS[c]],explain:cardWhy(c)}})},
+  monthKeys(){return shuffle([...range(0,11),...sample(range(0,11),4)]).map(m=>({q:`Month key for <b>${MONTHS[m]}</b>?`,choices:range(0,6).map(String),a:String(MONTH_KEYS[m]),explain:`Memory aid: ${MONTH_AIDS[m]}.`}))},
   apptConvert(){const qs=[];for(let i=0;i<12;i++){const d=rnd(7),h=1+rnd(10),n=(d+1)*10+(h%10);const label=`${WEEK[d]} at ${h}:00`;
     if(i%2===0)qs.push({q:`Peg word for <b>${label}</b>?`,a:[PEGS[n],String(n),...(PEG_ALT[n]||[])],explain:`${WEEK[d]} = ${d+1}, ${h} o’clock = ${h%10} → ${n} = ${PEGS[n]}`});
     else{const opts=new Set([label]);while(opts.size<4){const d2=rnd(7),h2=1+rnd(10);opts.add(`${WEEK[d2]} at ${h2}:00`)}qs.push({q:`Which day and hour is <b>${esc(PEGS[n])}</b>?`,choices:shuffle([...opts]),a:label,explain:`${PEGS[n]} = ${n} → day ${d+1}, hour ${h%10||10}`})}}return qs}
@@ -444,12 +459,16 @@ function flash(el,cfg,done,qsIn){
       q.choices?`<div class="choices">${q.choices.map((c,k)=>`<button class="choice" data-k="${k}">${esc(c)}</button>`).join("")}</div>`:
       q.cardChoices?`<div class="choices">${q.cardChoices.map((c,k)=>`<button class="choice" data-k="${k}" style="padding:6px">${cardHTML(c)}</button>`).join("")}</div>`:
       `<form class="row" id="fq"><input type="text" id="ans" autocomplete="off" autocapitalize="off" spellcheck="false" inputmode="${q.num?"numeric":"text"}" aria-label="Your answer"><button class="btn">Check</button></form>`}<div id="fb"></div>`;
-    const answer=(ok,btn)=>{if(ok)right++;const fb=$("#fb");fb.innerHTML=`<div class="fb ${ok?"good":"bad"}">${ok?"Right.":"Not quite."} ${esc(q.explain||"")}</div>${ok&&!cfg.time?"":`<div class="row" style="margin-top:10px"><button class="btn" id="go">Next</button></div>`}`;
+    const answer=(ok,given)=>{if(ok)right++;const fb=$("#fb");
+      const key=q.cardChoices?cardName(q.a):Array.isArray(q.a)?q.a[0]:q.a;
+      fb.innerHTML=ok?`<div class="fb good">Right. ${esc(q.explain||"")}</div>`:
+        `<div class="fb bad">Not quite.${given!=null?` You answered “${esc(given)}”.`:""}</div><div class="key"><div><span class="eyebrow">Answer</span> <b>${esc(key)}</b></div>${q.explain?`<div><span class="eyebrow">Why</span> ${esc(q.explain)}</div>`:""}</div>`;
+      fb.insertAdjacentHTML("beforeend",ok&&!cfg.time?"":`<div class="row" style="margin-top:10px"><button class="btn" id="go">Next</button></div>`);
       el.querySelectorAll(".choice,#fq button,#ans").forEach(b=>b.disabled=true);
       const go=()=>{i++;i>=qs.length?end():draw()};
       if(ok)setTimeout(go,cfg.time?350:750);else{$("#go").onclick=go;$("#go").focus()}};
-    if(q.choices||q.cardChoices){const arr=q.choices||q.cardChoices;el.querySelectorAll(".choice").forEach(b=>b.onclick=()=>{const v=arr[+b.dataset.k],ok=v===q.a;b.classList.add(ok?"good":"bad");if(!ok)el.querySelectorAll(".choice").forEach(x=>{if(arr[+x.dataset.k]===q.a)x.classList.add("good")});answer(ok)})}
-    else{$("#ans").focus();$("#fq").onsubmit=e=>{e.preventDefault();const v=$("#ans").value;if(!v.trim())return;const ok=q.num?q.a.includes(digits(v)):fuzzy(v,q.a);answer(ok)}}
+    if(q.choices||q.cardChoices){const arr=q.choices||q.cardChoices;el.querySelectorAll(".choice").forEach(b=>b.onclick=()=>{const v=arr[+b.dataset.k],ok=v===q.a;b.classList.add(ok?"good":"bad");if(!ok)el.querySelectorAll(".choice").forEach(x=>{if(arr[+x.dataset.k]===q.a)x.classList.add("good")});answer(ok,q.cardChoices?cardName(v):v)})}
+    else{$("#ans").focus();$("#fq").onsubmit=e=>{e.preventDefault();const v=$("#ans").value;if(!v.trim())return;const ok=q.num?q.a.includes(digits(v)):fuzzy(v,q.a);answer(ok,v.trim())}}
   };draw();
 }
 
@@ -466,7 +485,9 @@ observe(el,cfg,done){
     el.innerHTML=`<div class="q">Which ${cfg.n} were on the table? Tap to select.</div><div class="grid-obs">${pool.map(([e,l],k)=>`<button class="obj" data-k="${k}" aria-pressed="false"><span class="e">${e}</span><span class="l">${l}</span></button>`).join("")}</div><div class="row"><button class="btn" id="chk">Check</button><span class="hint" id="cnt">0 selected</span></div>`;
     el.querySelectorAll("button.obj").forEach(b=>b.onclick=()=>{const k=+b.dataset.k;sel.has(k)?sel.delete(k):sel.add(k);b.classList.toggle("sel");b.setAttribute("aria-pressed",sel.has(k));$("#cnt").textContent=sel.size+" selected"});
     $("#chk").onclick=()=>{let hit=0,fa=0;el.querySelectorAll("button.obj").forEach(b=>{const k=+b.dataset.k,was=items.includes(pool[k]);b.classList.remove("sel");b.disabled=true;if(sel.has(k)){if(was){hit++;b.classList.add("good")}else{fa++;b.classList.add("bad")}}else if(was)b.classList.add("miss")});
-      const sc=Math.max(0,(hit-fa)/cfg.n);$("#chk").outerHTML=`<button class="btn" id="cont">See result</button>`;$("#cnt").textContent=`${hit} found · ${fa} wrong · dashed = missed`;$("#cont").onclick=()=>done(sc)}}
+      const sc=Math.max(0,(hit-fa)/cfg.n);$("#chk").outerHTML=`<button class="btn" id="cont">See result</button>`;$("#cnt").textContent=`${hit} found · ${fa} wrong · dashed = missed`;$("#cont").onclick=()=>done(sc);
+      const missed=items.filter(x=>!pool.some((p,k)=>p===x&&sel.has(k))),extra=pool.filter((p,k)=>sel.has(k)&&!items.includes(p));
+      if(missed.length||extra.length)el.insertAdjacentHTML("beforeend",`<div class="answers"><h3>Answer key</h3><p style="margin:0 0 6px">On the table were: ${items.map(([e,l])=>`${e} ${l}`).join(", ")}.</p>${missed.length?`<p class="why" style="margin:0">You missed: ${missed.map(x=>x[1]).join(", ")}.</p>`:""}${extra.length?`<p class="why" style="margin:0">Not on the table: ${extra.map(x=>x[1]).join(", ")}.</p>`:""}<p class="why">Tip: while the timer runs, say each name in your head (“key, lemon, duck…”). Naming an object makes you notice it.</p></div>`)}}
 },
 recall(el,cfg,done){
   let entries;
@@ -487,8 +508,11 @@ recall(el,cfg,done){
     el.innerHTML=`<div class="q">${cfg.mode==="link"?(cfg.ask==="reverse"?"Recall the chain backwards, last item first.":"Recall the chain in order."):"What did you hang on each peg?"}</div><form class="recall" id="rf">${order.map((idx,r)=>`<div class="r"><span class="k">${cfg.mode==="link"?(cfg.ask==="reverse"?"from end "+(r+1):r+1):keyLabel(entries[idx].k)}</span><input type="text" id="ri${r}" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Item ${r+1}"><span class="ok" id="ro${r}"></span></div>`).join("")}<div class="row"><button class="btn" id="chk">Check answers</button></div></form>`;
     const inputs=[...el.querySelectorAll("#rf input")];inputs[0].focus();
     inputs.forEach((inp,r)=>inp.addEventListener("keydown",e=>{if(e.key==="Enter"&&r<inputs.length-1){e.preventDefault();inputs[r+1].focus()}}));
-    $("#rf").onsubmit=e=>{e.preventDefault();let ok=0;order.forEach((idx,r)=>{const g=fuzzy(inputs[r].value,[entries[idx].v]);if(g)ok++;inputs[r].disabled=true;const o=$("#ro"+r);o.className="ok "+(g?"g":"b");o.textContent=g?"✓":"✗ "+entries[idx].v});
-      $("#chk").outerHTML=`<button class="btn" type="button" id="cont">See result</button>`;$("#cont").onclick=()=>done(ok/entries.length);$("#cont").focus()};
+    $("#rf").onsubmit=e=>{e.preventDefault();let ok=0;const wrong=new Set();order.forEach((idx,r)=>{const g=fuzzy(inputs[r].value,[entries[idx].v]);if(g)ok++;else wrong.add(idx);inputs[r].disabled=true;const o=$("#ro"+r);o.className="ok "+(g?"g":"b");o.textContent=g?"✓":"✗ "+entries[idx].v});
+      $("#chk").outerHTML=`<button class="btn" type="button" id="cont">See result</button>`;$("#cont").onclick=()=>done(ok/entries.length);
+      if(wrong.size){const keyed=cfg.mode==="link"?entries.map((e,i)=>i):entries.map((e,i)=>i).sort((a,b)=>cfg.mode==="alpha"?entries[a].k.localeCompare(entries[b].k):entries[a].k-entries[b].k);
+        el.insertAdjacentHTML("beforeend",`<div class="answers"><h3>Answer key</h3><${cfg.mode==="link"?"ol":"ul"}>${keyed.map(i=>{const e=entries[i];return `<li class="${wrong.has(i)?"b":""}">${cfg.mode==="link"?`<b>${esc(e.v)}</b>${i?` <span class="why">· linked to ${esc(entries[i-1].v)}</span>`:` <span class="why">· the first item</span>`}`:`${keyLabel(e.k)} ${esc(pegWord(e.k))} ⟷ <b>${esc(e.v)}</b>`}</li>`}).join("")}</${cfg.mode==="link"?"ol":"ul"}><p class="why">Why you missed some: the picture probably wasn’t ridiculous or vivid enough. ${cfg.mode==="link"?"In a chain, one weak link loses everything after it. Go back to the item before each miss and make that pair more absurd: swap them, make one enormous, or show millions of them.":"Picture the peg word and the item doing something impossible together, like the peg made of the item or attacking it."}</p></div>`)}
+      $("#cont").focus()};
   }
 },
 cardseq(el,cfg,done){
@@ -498,7 +522,10 @@ cardseq(el,cfg,done){
     const draw=()=>{setProg(.5+.5*q/cfg.n);const pos=order[q];
       el.innerHTML=`<div class="eyebrow">${q+1} / ${cfg.n} · ${right} right</div><div class="q">Which card was <span class="mono">#${pos+1}</span> (${esc(PEGS[pos+1])})?</div><div class="deck">${DECK.map(c=>`<button class="${isRed(c)?"red":""}" data-c="${c}" aria-label="${esc(cardName(c))}">${cardLabel(c)}</button>`).join("")}</div><div id="fb"></div>`;
       el.querySelectorAll(".deck button").forEach(b=>b.onclick=()=>{const ok=b.dataset.c===cards[pos];if(ok)right++;b.classList.add(ok?"good":"bad");if(!ok)el.querySelector(`.deck button[data-c="${cards[pos]}"]`).classList.add("good");el.querySelectorAll(".deck button").forEach(x=>x.disabled=true);
-        $("#fb").innerHTML=`<div class="fb ${ok?"good":"bad"}">${ok?"Right.":"It was the "+cardName(cards[pos])+" ("+CARD_WORDS[cards[pos]]+")."}</div>`;setTimeout(()=>{q++;q>=cfg.n?done(right/cfg.n):draw()},ok?650:1600)})};draw()}
+        const c=cards[pos],nx=()=>{q++;q>=cfg.n?done(right/cfg.n):draw()};
+        if(ok){$("#fb").innerHTML=`<div class="fb good">Right.</div>`;setTimeout(nx,650);return}
+        $("#fb").innerHTML=`<div class="fb bad">Not quite. You picked the ${esc(cardName(b.dataset.c))}.</div><div class="key"><div><span class="eyebrow">Answer</span> <b>${esc(cardName(c))}</b> ${cardHTML(c)}</div><div><span class="eyebrow">Why</span> Position ${pos+1} is the peg “${esc(PEGS[pos+1])}”, linked to “${CARD_WORDS[c]}”. ${esc(cardWhy(c))}</div></div><div class="row" style="margin-top:10px"><button class="btn" id="go">Next</button></div>`;
+        $("#go").onclick=nx;$("#go").focus()})};draw()}
 },
 missing(el,cfg,done){
   const deck=shuffle(DECK),miss=deck.slice(0,cfg.m),shown=deck.slice(cfg.m);let i=0;
@@ -510,7 +537,8 @@ missing(el,cfg,done){
     el.innerHTML=`<div class="q">Which ${cfg.m} cards never appeared? Go through your card words and look for the ones you didn’t mutilate.</div><div class="deck">${DECK.map(c=>`<button class="${isRed(c)?"red":""}" data-c="${c}" aria-pressed="false" aria-label="${esc(cardName(c))}">${cardLabel(c)}</button>`).join("")}</div><div class="row"><button class="btn" id="chk">Check</button><span class="hint" id="cnt">0 of ${cfg.m} selected</span></div>`;
     el.querySelectorAll(".deck button").forEach(b=>b.onclick=()=>{const c=b.dataset.c;if(sel.has(c))sel.delete(c);else{if(sel.size>=cfg.m)return toast(`Pick only ${cfg.m}`);sel.add(c)}b.classList.toggle("sel",sel.has(c));b.setAttribute("aria-pressed",sel.has(c));$("#cnt").textContent=`${sel.size} of ${cfg.m} selected`});
     $("#chk").onclick=()=>{let hit=0;el.querySelectorAll(".deck button").forEach(b=>{const c=b.dataset.c;b.disabled=true;b.classList.remove("sel");if(sel.has(c)){if(miss.includes(c)){hit++;b.classList.add("good")}else b.classList.add("bad")}else if(miss.includes(c))b.classList.add("miss")});
-      $("#cnt").textContent=`${hit} of ${cfg.m} right. Missing: ${miss.map(cardName).join(", ")}`;$("#chk").outerHTML=`<button class="btn" id="cont">See result</button>`;$("#cont").onclick=()=>done(hit/cfg.m)}}
+      $("#cnt").textContent=`${hit} of ${cfg.m} right`;$("#chk").outerHTML=`<button class="btn" id="cont">See result</button>`;$("#cont").onclick=()=>done(hit/cfg.m);
+      if(hit<cfg.m)el.insertAdjacentHTML("beforeend",`<div class="answers"><h3>Answer key</h3><p style="margin:0 0 6px">The ${cfg.m} cards that never appeared (gold outline):</p><ul>${miss.map(c=>`<li><b>${esc(cardName(c))}</b> <span class="why">· ${CARD_WORDS[c]}</span></li>`).join("")}</ul><p class="why">How the stunt works: as each card goes by, picture its word damaged (the ${CARD_WORDS[miss[0]]} broken, burned or missing a piece). Afterwards, run through the card words suit by suit. Any word whose picture is still whole is a missing card.</p></div>`)}}
   draw();
 },
 numbers(el,cfg,done){
@@ -526,7 +554,8 @@ numbers(el,cfg,done){
     el.innerHTML=`<div class="q">Type the digits back.</div><form class="items" id="nf">${items.map((it,i)=>`<div class="item"><label class="lab" for="n${i}">${esc(it.label)}</label><div class="row" style="margin-top:6px"><input type="text" id="n${i}" inputmode="numeric" autocomplete="off"><span class="ok" id="no${i}"></span></div></div>`).join("")}<div class="row"><button class="btn" id="chk">Check</button></div></form>`;
     $("#n0").focus();
     $("#nf").onsubmit=e=>{e.preventDefault();let ok=0,tot=0;items.forEach((it,i)=>{const g=digits($("#n"+i).value);let c=0;for(let k=0;k<it.num.length;k++)if(g[k]===it.num[k])c++;ok+=c;tot+=it.num.length;$("#n"+i).disabled=true;const o=$("#no"+i);o.className="ok "+(c===it.num.length?"g":"b");o.textContent=c===it.num.length?"✓ perfect":`${c}/${it.num.length} · was ${fmt(it.num)}`});
-      $("#chk").outerHTML=`<button class="btn" type="button" id="cont">See result</button>`;$("#cont").onclick=()=>done(ok/tot)}};
+      $("#chk").outerHTML=`<button class="btn" type="button" id="cont">See result</button>`;$("#cont").onclick=()=>done(ok/tot);
+      if(ok<tot)el.insertAdjacentHTML("beforeend",`<div class="answers"><h3>Answer key</h3><ul>${items.map((it,i)=>{const g=digits($("#n"+i).value);return `<li class="${g===it.num?"":"b"}"><b>${esc(it.label)}:</b> <span class="mono">${fmt(it.num)}</span>${g!==it.num?` <span class="why">(you typed ${esc(g||"nothing")})</span>`:""}<div class="why">Peg words: ${esc(pegLine(it.num))}</div></li>`}).join("")}</ul><p class="why">Why: each pair of digits becomes one peg word, and the words are linked in order${cfg.kind==="phone"?", starting from a picture of the person":""}. A wrong pair usually means a weak link. Make that picture more absurd. If two digits are swapped, check which sound comes first in the peg word.</p></div>`)}};
 },
 calendar(el,cfg,done){
   const Y=new Date().getFullYear();
@@ -549,8 +578,8 @@ calendar(el,cfg,done){
 vocab(el,cfg,done){
   const set=shuffle(VOCAB[cfg.set]);
   study(el,set.map(([w,m,s])=>({html:`<div class="big">${esc(w)}</div><div class="q" style="color:var(--muted)">${esc(m)}</div><label class="hint" for="own">Your own substitute picture (optional):</label><input type="text" id="own" autocomplete="off" placeholder="e.g. a fish drinking poison">`,hint:esc(s)})),()=>{
-    const qs=[];set.forEach(([w,m])=>{const others=sample(set.filter(x=>x[0]!==w),3);qs.push({q:`What does <b>${esc(w)}</b> mean?`,choices:shuffle([m,...others.map(o=>o[1])]),a:m,explain:`${w} = ${m}`})});
-    if(cfg.both)sample(set,5).forEach(([w,m])=>{const others=sample(set.filter(x=>x[0]!==w),3);qs.push({q:`Which word means <b>${esc(m)}</b>?`,choices:shuffle([w,...others.map(o=>o[0])]),a:w,explain:`${m} = ${w}`})});
+    const qs=[];set.forEach(([w,m,s])=>{const others=sample(set.filter(x=>x[0]!==w),3);qs.push({q:`What does <b>${esc(w)}</b> mean?`,choices:shuffle([m,...others.map(o=>o[1])]),a:m,explain:`${w} = ${m}. Picture: ${s}.`})});
+    if(cfg.both)sample(set,5).forEach(([w,m,s])=>{const others=sample(set.filter(x=>x[0]!==w),3);qs.push({q:`Which word means <b>${esc(m)}</b>?`,choices:shuffle([w,...others.map(o=>o[0])]),a:w,explain:`${m} = ${w}. Picture: ${s}.`})});
     flash(el,{},done,shuffle(qs))},{title:"Learn",doneLabel:"Start quiz",tip:"Say the word aloud, find the sound-alike, then link it to the meaning."});
 },
 faces(el,cfg,done){
@@ -565,8 +594,10 @@ faces(el,cfg,done){
     $("#fn0").focus();
     $("#ff").onsubmit=e=>{e.preventDefault();let ok=0,tot=0;order.forEach((pi,r)=>{const p=ppl[pi];const n=fuzzy($("#fn"+r).value,p.ans);ok+=n;tot++;let msg=n?"✓ "+p.name:"✗ "+p.name;
       if(p.job){const j=$("#fj"+r).value===p.job,c=$("#fc"+r).value===p.city;ok+=j+c;tot+=2;msg+=` · ${j?"✓":"✗"} ${p.job} · ${c?"✓":"✗"} ${p.city}`;$("#fj"+r).disabled=$("#fc"+r).disabled=true}
-      $("#fn"+r).disabled=true;const o=$("#fo"+r);o.className="ok "+(msg.includes("✗")?"b":"g");o.textContent=msg});
-      $("#chk").outerHTML=`<button class="btn" type="button" id="cont">See result</button>`;$("#cont").onclick=()=>done(ok/tot)}}
+      $("#fn"+r).disabled=true;const o=$("#fo"+r);o.className="ok "+(msg.includes("✗")?"b":"g");o.textContent=msg;
+      if(msg.includes("✗"))o.insertAdjacentHTML("afterend",`<div class="why" style="font-size:13px;text-align:center">Feature: ${esc(p.feat)}. ${esc(p.name.split(" ").pop())} → ${esc(p.sub)}.</div>`)});
+      $("#chk").outerHTML=`<button class="btn" type="button" id="cont">See result</button>`;$("#cont").onclick=()=>done(ok/tot);
+      if(ok<tot)el.insertAdjacentHTML("beforeend",`<div class="answers"><h3>Answer key</h3><ul>${ppl.map(p=>`<li><b>${esc(p.name)}</b>${p.job?`, ${esc(p.job)} from ${esc(p.city)}`:""}<div class="why">Outstanding feature: ${esc(p.feat)} · substitute picture: ${esc(p.sub)}</div></li>`).join("")}</ul><p class="why">Why: the name comes back only if its picture is attached to something you’ll see again, the face’s outstanding feature. Next time, imagine the substitute picture right on that feature${cfg.set==="facts"?", with the job and the city in the same scene":""}.</p></div>`)}}
 },
 appt(el,cfg,done){
   const tasks=sample(TASKS,cfg.n),used=new Set();
@@ -582,7 +613,8 @@ order(el,cfg,done){
       el.querySelectorAll(".seq button").forEach(b=>b.onclick=()=>{picked.push(+b.dataset.k);draw()});
       $("#undo").onclick=()=>{picked.pop();draw()};
       $("#chk").onclick=()=>{let ok=0;const rows=[...el.querySelectorAll(".picked div")];picked.forEach((k,i)=>{const g=k===i;ok+=g;rows[i].className=g?"g":"b";rows[i].textContent=`${i+1}. ${ideas[k][0]}${g?" ✓":` ✗ (should be: ${ideas[i][0]}${kws[i]?", your key word “"+kws[i]+"”":""})`}`});
-        el.querySelector(".seq").remove();$("#undo").remove();$("#chk").outerHTML=`<button class="btn" id="cont">See result</button>`;$("#cont").onclick=()=>done(ok/cfg.n)}};draw()};
+        el.querySelector(".seq").remove();$("#undo").remove();$("#chk").outerHTML=`<button class="btn" id="cont">See result</button>`;$("#cont").onclick=()=>done(ok/cfg.n);
+        if(ok<cfg.n)el.insertAdjacentHTML("beforeend",`<div class="answers"><h3>Answer key: the talk in order</h3><ol>${ideas.map((x,i)=>`<li class="${picked[i]===i?"":"b"}"><b>${esc(x[0])}</b>${kws[i]?` <span class="why">· your key word: ${esc(kws[i])}</span>`:""}<div class="why">${esc(x[1])}</div></li>`).join("")}</ol><p class="why">Why: the order comes from the chain of key words. Where you went wrong, link the key word before it to the one after it with a more absurd picture.</p></div>`)}};draw()};
 }
 };
 
